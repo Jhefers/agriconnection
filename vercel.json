@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/dashboard_rotas_logisticas.html" }
+  ]
+}
