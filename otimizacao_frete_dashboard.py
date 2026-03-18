@@ -240,8 +240,8 @@ def gerar_tabela_consolidada(
 
     resultado = pd.concat([diretas, hubs_df], ignore_index=True)
     resultado["TOTAL"] = (resultado["CUSTO 1"] + resultado["CUSTO 2"]).round(2)
-    menor_total_por_destino = resultado.groupby("DESTINO")["TOTAL"].transform("min").round(2)
-    resultado["MELHOR_POR_DESTINO"] = resultado["TOTAL"].round(2).eq(menor_total_por_destino)
+    menor_total = resultado.groupby(["DESTINO", "VEICULO 1"])["TOTAL"].transform("min").round(2)
+    resultado["MELHOR_POR_DESTINO_VEICULO"] = resultado["TOTAL"].round(2).eq(menor_total)
 
     resultado = resultado.sort_values(["DESTINO", "TOTAL", "ROTA", "HUB"]).reset_index(drop=True)
     return resultado
@@ -281,7 +281,7 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
 
     body_rows: List[str] = []
     for _, row in df.iterrows():
-        is_best = bool(row["MELHOR_POR_DESTINO"])
+        is_best = bool(row["MELHOR_POR_DESTINO_VEICULO"])
         row_class = "best" if is_best else "expensive"
         total_cell_class = "total-cell best-total" if is_best else "total-cell"
         veiculo_2 = "" if str(row["VEICULO 2"]) in {"", "nan"} else html.escape(str(row["VEICULO 2"]))
@@ -307,9 +307,9 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
         )
 
     melhores = (
-        df[df["MELHOR_POR_DESTINO"]]
-        .sort_values(["DESTINO", "TOTAL"])
-        .drop_duplicates(subset=["DESTINO"], keep="first")
+        df[df["MELHOR_POR_DESTINO_VEICULO"]]
+        .sort_values(["DESTINO", "VEICULO 1", "TOTAL", "ROTA", "HUB"])
+        .drop_duplicates(subset=["DESTINO", "VEICULO 1"], keep="first")
         .reset_index(drop=True)
     )
 
@@ -636,13 +636,13 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
         {logo_markup}
         <div class="hero-copy">
           <h1>Otimizador de Frete • Inbound + Transferência</h1>
-          <p>Simulação de rotas DIRETO e HUB com menor custo por destino destacado automaticamente.</p>
+          <p>Simulação de rotas DIRETO e HUB com menor custo por destino e veículo destacado automaticamente.</p>
         </div>
       </div>
       <div class="chips">
         <span class="chip">Combinações: {len(df):,}</span>
         <span class="chip">Destinos: {df['DESTINO'].nunique():,}</span>
-        <span class="chip">Melhores rotas: {melhores['DESTINO'].nunique():,}</span>
+        <span class="chip">Melhores rotas: {len(melhores):,}</span>
       </div>
     </section>
 
@@ -686,17 +686,17 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
     </section>
 
     <div class="legend">
-      <span><i class="dot" style="background: var(--ok)"></i> Melhor opção por destino</span>
+      <span><i class="dot" style="background: var(--ok)"></i> Melhor opção por destino e veículo</span>
       <span><i class="dot" style="background: var(--bad)"></i> Opções mais caras</span>
     </div>
 
     <button class="best-toggle-btn" id="bestToggleBtn" onclick="toggleBestBox()">
-      <span>Ver melhor rota por destino</span>
+      <span>Ver melhor rota por destino e veículo</span>
       <i class="btn-arrow">&#9660;</i>
     </button>
 
     <section class="best-box" id="bestBox">
-      <h2>Melhor rota por destino</h2>
+      <h2>Melhor rota por destino e veículo</h2>
       <div class="table-wrap">
         <table>
           <thead>
@@ -769,11 +769,11 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
       if (isOpen) {{
         box.classList.remove('visible');
         btn.classList.remove('open');
-        btn.querySelector('span').textContent = 'Ver melhor rota por destino';
+        btn.querySelector('span').textContent = 'Ver melhor rota por destino e veículo';
       }} else {{
         box.classList.add('visible');
         btn.classList.add('open');
-        btn.querySelector('span').textContent = 'Fechar melhor rota por destino';
+        btn.querySelector('span').textContent = 'Fechar melhor rota por destino e veículo';
       }}
     }}
 
@@ -843,9 +843,9 @@ def executar(
     consolidado = gerar_tabela_consolidada(inbound, transferencia, hubs, cols)
 
     melhores = (
-        consolidado[consolidado["MELHOR_POR_DESTINO"]]
-        .sort_values(["DESTINO", "TOTAL"])
-        .drop_duplicates(subset=["DESTINO"], keep="first")
+        consolidado[consolidado["MELHOR_POR_DESTINO_VEICULO"]]
+        .sort_values(["DESTINO", "VEICULO 1", "TOTAL", "ROTA", "HUB"])
+        .drop_duplicates(subset=["DESTINO", "VEICULO 1"], keep="first")
         .reset_index(drop=True)
     )
 
@@ -858,7 +858,7 @@ def executar(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Gera dashboard HTML com combinações de frete DIRETO e HUB e menor custo por destino."
+        description="Gera dashboard HTML com combinações de frete DIRETO e HUB e menor custo por destino e veículo."
     )
     parser.add_argument(
         "--inbound",
@@ -906,7 +906,7 @@ def main() -> None:
     if csv_saida:
         print(f"CSV consolidado em: {csv_saida.resolve()}")
     print(f"Total de combinações: {len(consolidado):,}")
-    print(f"Total de destinos com melhor rota: {len(melhores):,}")
+    print(f"Total de combinações destino+veículo com melhor rota: {len(melhores):,}")
 
 
 if __name__ == "__main__":
