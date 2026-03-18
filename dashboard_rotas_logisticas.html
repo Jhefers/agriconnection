@@ -54,20 +54,23 @@
     }
 
     .brand-mark {
-      width: 86px;
+      width: 180px;
       height: 86px;
       border-radius: 20px;
       display: grid;
       place-items: center;
       flex: 0 0 auto;
-      background: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.75);
+      overflow: hidden;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.18);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 14px 30px rgba(0, 0, 0, 0.22);
     }
 
     .brand-mark img {
-      max-width: 68px;
-      max-height: 68px;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
       display: block;
     }
 
@@ -291,8 +294,8 @@
       th, td { padding: 9px 8px; font-size: 0.8rem; }
       .hero { align-items: stretch; flex-direction: column; }
       .hero-main { align-items: flex-start; }
-      .brand-mark { width: 72px; height: 72px; border-radius: 16px; }
-      .brand-mark img { max-width: 56px; max-height: 56px; }
+      .brand-mark { width: 150px; height: 72px; border-radius: 16px; }
+      .brand-mark img { width: 100%; height: 100%; }
     }
   </style>
 </head>
@@ -300,7 +303,7 @@
   <div class="wrap">
     <section class="hero">
       <div class="hero-main">
-        <div class="brand-mark"><img src="logo-agri-dark.svg" alt="Logo da empresa" /></div>
+        <div class="brand-mark"><img src="logo-agri-dark.png" alt="Logo da empresa" /></div>
         <div class="hero-copy">
           <h1>Otimizador de Frete • Inbound + Transferência</h1>
           <p>Simulação de rotas DIRETO e HUB com menor custo por destino e veículo destacado automaticamente.</p>

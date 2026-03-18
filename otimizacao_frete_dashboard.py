@@ -265,12 +265,14 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
     destinos = sorted(df["DESTINO"].astype(str).unique().tolist())
     veiculos = sorted(df["VEICULO 1"].astype(str).unique().tolist(), key=chave_ordenacao_veiculo)
     logo_candidates = [
-        "logo-agri-dark.svg",
-        "logo.svg",
-        "logo.png",
-        "logo.jpg",
-        "logo.jpeg",
-        "logo.webp",
+      "logo-agri-dark.png",
+      "logo-agri-dark_old.svg",
+      "logo-agri-dark.svg",
+      "logo.svg",
+      "logo.png",
+      "logo.jpg",
+      "logo.jpeg",
+      "logo.webp",
     ]
     logo_name = next((name for name in logo_candidates if (destino_saida.parent / name).exists()), None)
     logo_markup = (
@@ -387,20 +389,23 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
     }}
 
     .brand-mark {{
-      width: 86px;
+      width: 180px;
       height: 86px;
       border-radius: 20px;
       display: grid;
       place-items: center;
       flex: 0 0 auto;
-      background: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.75);
+      overflow: hidden;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.18);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 14px 30px rgba(0, 0, 0, 0.22);
     }}
 
     .brand-mark img {{
-      max-width: 68px;
-      max-height: 68px;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
       display: block;
     }}
 
@@ -624,8 +629,8 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
       th, td {{ padding: 9px 8px; font-size: 0.8rem; }}
       .hero {{ align-items: stretch; flex-direction: column; }}
       .hero-main {{ align-items: flex-start; }}
-      .brand-mark {{ width: 72px; height: 72px; border-radius: 16px; }}
-      .brand-mark img {{ max-width: 56px; max-height: 56px; }}
+      .brand-mark {{ width: 150px; height: 72px; border-radius: 16px; }}
+      .brand-mark img {{ width: 100%; height: 100%; }}
     }}
   </style>
 </head>
