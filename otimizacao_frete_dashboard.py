@@ -10,6 +10,9 @@ import pandas as pd
 from pandas.api.types import is_numeric_dtype
 
 
+BASE_DIR = Path(__file__).resolve().parent
+
+
 # CDs válidos para composição de rota HUB.
 HUBS_PADRAO = ["BARUERI", "ITU", "EMBU"]
 
@@ -94,6 +97,12 @@ def ler_tabela(path: Path, obrigatorias: Iterable[str] | None = None) -> pd.Data
             )
         return df
     raise ValueError(f"Formato não suportado: {path}")
+
+
+def resolver_caminho(path: Path) -> Path:
+    if path.is_absolute():
+        return path
+    return BASE_DIR / path
 
 
 def normalizar_veiculo(valor: object) -> str | None:
@@ -897,17 +906,20 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    csv_saida = args.output_csv if str(args.output_csv).strip() else None
+    inbound_path = resolver_caminho(args.inbound)
+    transferencia_path = resolver_caminho(args.transferencia)
+    html_saida = resolver_caminho(args.output_html)
+    csv_saida = resolver_caminho(args.output_csv) if str(args.output_csv).strip() else None
 
     consolidado, melhores = executar(
-        inbound_path=args.inbound,
-        transferencia_path=args.transferencia,
-        html_saida=args.output_html,
+        inbound_path=inbound_path,
+        transferencia_path=transferencia_path,
+        html_saida=html_saida,
         csv_saida=csv_saida,
         hubs=args.hubs,
     )
 
-    print(f"HTML gerado em: {args.output_html.resolve()}")
+    print(f"HTML gerado em: {html_saida.resolve()}")
     if csv_saida:
         print(f"CSV consolidado em: {csv_saida.resolve()}")
     print(f"Total de combinações: {len(consolidado):,}")
