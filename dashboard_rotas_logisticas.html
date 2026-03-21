@@ -232,6 +232,23 @@
       color: #c9ffd8;
     }
 
+    .sim-card-delta {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #ffcf9e;
+      background: rgba(112, 62, 21, 0.25);
+      border: 1px solid rgba(255, 170, 92, 0.35);
+      border-radius: 999px;
+      padding: 2px 8px;
+      line-height: 1.2;
+    }
+
+    .sim-card-delta.base {
+      color: #a9f2c7;
+      background: rgba(18, 88, 54, 0.25);
+      border-color: rgba(66, 194, 126, 0.35);
+    }
+
     .sim-card-meta {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1056,6 +1073,7 @@
       const cenariosCompetitivos = filtrarCenariosCompetitivos(cenarios);
       cenariosCompetitivos.sort((a, b) => (a.custoTotal - b.custoTotal) || (a.qtdVeiculos - b.qtdVeiculos) || (b.utilScore - a.utilScore));
       resultEl.classList.add('visible');
+      const custoBase = Number(cenariosCompetitivos[0]?.custoTotal || 0);
       const renderEtapaCard = (titulo, etapa) => {
         if (!etapa) return '';
         return `
@@ -1082,11 +1100,19 @@
         return `#${idx + 1} • ${pontos.join(' -> ')}`;
       };
 
+      const montarDeltaCusto = (custoAtual, idx) => {
+        if (idx === 0 || !(custoBase > 0)) return '<div class="sim-card-delta base">Referência</div>';
+        const delta = Math.max(0, Number(custoAtual || 0) - custoBase);
+        const deltaPct = (delta / custoBase) * 100;
+        return `<div class="sim-card-delta">+${formatBRL(delta)} (${formatPercent(deltaPct)})</div>`;
+      };
+
       const cards = cenariosCompetitivos.map((c, idx) => `
         <article class="sim-card ${idx === 0 ? 'top' : ''}">
           <div class="sim-card-head">
             <div class="sim-card-title">${montarTituloCenario(c, idx)}</div>
             <div class="sim-card-total">${formatBRL(c.custoTotal)}</div>
+            ${montarDeltaCusto(c.custoTotal, idx)}
           </div>
           <div class="sim-card-meta">
             <div class="sim-kv"><span class="k">Formação</span><span class="v">${c.formacao}</span></div>
