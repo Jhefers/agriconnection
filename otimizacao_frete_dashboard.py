@@ -809,13 +809,14 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
       return Math.max(1, Math.floor(capacidadePeso / mediaPesoPorPallet));
     }}
 
-    function montarEtapa(transportadora, nVeiculos, capacidadePesoTotal, capacidadePalletTotal, pesoUtilizado, palletsUtilizados, custo) {{
+    function montarEtapa(transportadora, nVeiculos, capacidadePesoTotal, capacidadePalletTotal, pesoUtilizado, palletsUtilizados, custo, formacao = '-') {{
       if (!transportadora || transportadora === '-') return null;
       const ocupPeso = capacidadePesoTotal > 0 ? (pesoUtilizado / capacidadePesoTotal) * 100 : 0;
       const ocupPallet = capacidadePalletTotal > 0 ? (palletsUtilizados / capacidadePalletTotal) * 100 : 0;
       const gargalo = capacidadePalletTotal > 0 && ocupPallet >= ocupPeso ? 'PALLET' : 'PESO';
       return {{
         transportadora,
+        formacao,
         nVeiculos,
         pesoUtilizado,
         capacidadePesoTotal,
@@ -826,6 +827,13 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
         gargalo,
         custo,
       }};
+    }}
+
+    function montarFormacaoEtapa(partes) {{
+      const blocos = (partes || [])
+        .filter(p => Number(p?.n || 0) > 0 && Number(p?.peso || 0) > 0)
+        .map(p => `${{Number(p.n).toLocaleString('pt-BR')}}x ${{Number(p.peso).toLocaleString('pt-BR')}} kg`);
+      return blocos.length ? blocos.join(' + ') : '-';
     }}
 
     function getEtapaUtilizacaoLimitante(etapa) {{
@@ -1014,6 +1022,15 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
         if ((pesoTotal / Math.max(n, 1)) > Number(cap1.peso_max)) return;
         if (cap2 && (pesoTotal / Math.max(n, 1)) > Number(cap2.peso_max)) return;
 
+        const formacaoEtapa1 = montarFormacaoEtapa([
+          {{ n, peso: Number(cap1.peso_max) }},
+        ]);
+        const formacaoEtapa2 = cap2
+          ? montarFormacaoEtapa([
+              {{ n, peso: Number(cap2.peso_max) }},
+            ])
+          : '-';
+
         cenarios.push({{
           origem: r.origem || 'PORTO STS',
           destino,
@@ -1028,6 +1045,7 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
             pesoTotal,
             palletsTotais,
             n * Number(r.custo1 || 0),
+            formacaoEtapa1,
           ),
           etapa2: cap2 && (r.transp2 || Number(r.custo2 || 0) > 0)
             ? montarEtapa(
@@ -1038,6 +1056,7 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
                 pesoTotal,
                 palletsTotais,
                 n * Number(r.custo2 || 0),
+                formacaoEtapa2,
               )
             : null,
           qtdVeiculos: n,
@@ -1076,6 +1095,15 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
               if ((c1Etapa2 || c2Etapa2) && pesoCapEtapa2 < pesoTotal) continue;
               if ((p1Etapa2 > 0 || p2Etapa2 > 0) && palletCapEtapa2 < palletsTotais) continue;
 
+              const formacaoLoopEtapa1 = montarFormacaoEtapa([
+                {{ n: n1, peso: Number(c1.peso_max) }},
+                {{ n: n2, peso: Number(c2.peso_max) }},
+              ]);
+              const formacaoLoopEtapa2 = montarFormacaoEtapa([
+                {{ n: n1, peso: Number(c1Etapa2?.peso_max || 0) }},
+                {{ n: n2, peso: Number(c2Etapa2?.peso_max || 0) }},
+              ]);
+
               cenarios.push({{
                 origem: r1.origem || 'PORTO STS',
                 destino,
@@ -1090,6 +1118,7 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
                   pesoTotal,
                   palletsTotais,
                   (n1 * Number(r1.custo1 || 0)) + (n2 * Number(r2.custo1 || 0)),
+                  formacaoLoopEtapa1,
                 ),
                 etapa2: (c1Etapa2 || c2Etapa2)
                   ? montarEtapa(
@@ -1100,6 +1129,7 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
                       pesoTotal,
                       palletsTotais,
                       (n1 * Number(r1.custo2 || 0)) + (n2 * Number(r2.custo2 || 0)),
+                      formacaoLoopEtapa2,
                     )
                   : null,
                 qtdVeiculos: n1 + n2,
@@ -1127,6 +1157,15 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
             if ((c1Etapa2 || c2Etapa2) && pesoCapEtapa2 < pesoTotal) return;
             if ((p1Etapa2 > 0 || p2Etapa2 > 0) && palletCapEtapa2 < palletsTotais) return;
 
+            const formacaoSpillEtapa1 = montarFormacaoEtapa([
+              {{ n: n1, peso: Number(c1.peso_max) }},
+              {{ n: n2, peso: Number(c2.peso_max) }},
+            ]);
+            const formacaoSpillEtapa2 = montarFormacaoEtapa([
+              {{ n: n1, peso: Number(c1Etapa2?.peso_max || 0) }},
+              {{ n: n2, peso: Number(c2Etapa2?.peso_max || 0) }},
+            ]);
+
             cenarios.push({{
               origem: r1.origem || 'PORTO STS',
               destino,
@@ -1141,6 +1180,7 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
                 pesoTotal,
                 palletsTotais,
                 (n1 * Number(r1.custo1 || 0)) + (n2 * Number(r2.custo1 || 0)),
+                formacaoSpillEtapa1,
               ),
               etapa2: (c1Etapa2 || c2Etapa2)
                 ? montarEtapa(
@@ -1151,6 +1191,7 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
                     pesoTotal,
                     palletsTotais,
                     (n1 * Number(r1.custo2 || 0)) + (n2 * Number(r2.custo2 || 0)),
+                    formacaoSpillEtapa2,
                   )
                 : null,
               qtdVeiculos: n1 + n2,
@@ -1176,6 +1217,7 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
           <section class="sim-etapa">
             <h4>${{titulo}}</h4>
             <div class="sim-kv"><span class="k">Transportadora</span><span class="v">${{etapa.transportadora}}</span></div>
+            <div class="sim-kv"><span class="k">Formação</span><span class="v">${{etapa.formacao || '-'}}</span></div>
             <div class="sim-kv"><span class="k">Veículos</span><span class="v">${{Number(etapa.nVeiculos || 0).toLocaleString('pt-BR')}}</span></div>
             <div class="sim-kv"><span class="k">Peso</span><span class="v">${{Number(etapa.pesoUtilizado || 0).toLocaleString('pt-BR')}} / ${{Number(etapa.capacidadePesoTotal || 0).toLocaleString('pt-BR')}} kg</span></div>
             <div class="sim-kv"><span class="k">Pallet</span><span class="v">${{Number(etapa.palletsUtilizados || 0).toLocaleString('pt-BR')}} / ${{Number(etapa.capacidadePalletTotal || 0).toLocaleString('pt-BR')}}</span></div>
@@ -1197,21 +1239,22 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
       }};
 
       const montarDeltaCusto = (custoAtual, idx) => {{
-        if (idx === 0 || !(custoBase > 0)) return '<div class="sim-card-delta base">Referência</div>';
+        if (idx === 0 || !(custoBase > 0)) return {{ texto: 'Referência', isBase: true }};
         const delta = Math.max(0, Number(custoAtual || 0) - custoBase);
         const deltaPct = (delta / custoBase) * 100;
-        return `<div class="sim-card-delta">+${{formatBRL(delta)}} (${{formatPercent(deltaPct)}})</div>`;
+        return {{ texto: `+${{formatBRL(delta)}} (${{formatPercent(deltaPct)}})`, isBase: false }};
       }};
 
-      const cards = cenariosCompetitivos.map((c, idx) => `
+      const cards = cenariosCompetitivos.map((c, idx) => {{
+        const comparativo = montarDeltaCusto(c.custoTotal, idx);
+        return `
         <article class="sim-card ${{idx === 0 ? 'top' : ''}}">
           <div class="sim-card-head">
             <div class="sim-card-title">${{montarTituloCenario(c, idx)}}</div>
             <div class="sim-card-total">${{formatBRL(c.custoTotal)}}</div>
-            ${{montarDeltaCusto(c.custoTotal, idx)}}
           </div>
           <div class="sim-card-meta">
-            <div class="sim-kv"><span class="k">Formação</span><span class="v">${{c.formacao}}</span></div>
+            <div class="sim-kv"><span class="k">Comparativo</span><span class="v"><span class="sim-card-delta ${{comparativo.isBase ? 'base' : ''}}">${{comparativo.texto}}</span></span></div>
             <div class="sim-kv"><span class="k">Score de utilização</span><span class="v">${{formatPercent(c.utilScore || 0)}}</span></div>
           </div>
           <div class="sim-etapas">
@@ -1219,7 +1262,8 @@ def gerar_html(df: pd.DataFrame, destino_saida: Path) -> None:
             ${{renderEtapaCard('ETAPA 2', c.etapa2)}}
           </div>
         </article>
-      `).join('');
+      `;
+      }}).join('');
 
       resultEl.innerHTML = `
         <div class="sim-kv" style="margin-bottom:8px; border-bottom:none;">
